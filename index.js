@@ -10,6 +10,8 @@ const utilsRoutes = require('./src/routes/utils');
 const swapRoutes = require('./src/routes/swap');
 const exchangeRoutes = require('./src/routes/exchange');
 const bankingRoutes = require('./src/routes/banking');
+const tokensRoutes = require('./src/routes/tokens');
+const evmRoutes = require('./src/routes/evm');
 
 app.use(express.json());
 
@@ -53,6 +55,12 @@ app.use('/exchange', exchangeRoutes);
 
 // Banking routes (FX, SWIFT validation, quotes, confirmation, simulated transfers)
 app.use('/banking', bankingRoutes);
+
+// Tokens routes (rates, contracts via CoinGecko)
+app.use('/tokens', tokensRoutes);
+
+// EVM routes (ETH/ERC20 send, fees, tx status)
+app.use('/evm', evmRoutes);
 
 // Root -> UI index.html
 app.get('/', (req, res) => {

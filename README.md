@@ -78,6 +78,22 @@ Notes:
 - Symbols differ by exchange (Kraken: XBTUSD; Coinbase: BTC-USD).
 - Real trading requires KYC, correct account permissions, and careful key management. Keys are held in-memory only; use a secure secret manager in production.
 
+## Tokens and EVM
+
+Tokens (prefix: `/tokens`)
+- GET `/tokens/list?vs_currency=usd&per_page=50&page=1` -> top tokens with market data (CoinGecko)
+- GET `/tokens/rates?ids=bitcoin,ethereum&vs=usd,eur` -> current rates for specific ids
+- GET `/tokens/contract?id=ethereum&platform=ethereum` -> contract address on Ethereum
+- GET `/tokens/by-contract?contract_address=0x...` -> token details by ERC20 contract
+
+EVM (prefix: `/evm`)
+- POST `/evm/config` -> { rpcUrl } to set RPC (default: Sepolia)
+- POST `/evm/wallets/new` -> generate a new EVM wallet
+- POST `/evm/fees/estimate` -> estimate EIP-1559 fees for a tx request
+- POST `/evm/send/eth` -> { privateKey, to, amountEth, subtractFee? } send ETH (gas deducted from balance; subtractFee reduces sent amount)
+- POST `/evm/send/erc20` -> { privateKey, tokenAddress, to, amountTokens } send ERC20 (gas paid in ETH)
+- GET `/evm/tx/:hash` -> transaction + receipt
+
 ## Swap (public quotes, experimental)
 - POST `/swap/quote` -> `{ provider, from, to, amount }` uses public market data (Kraken/Coinbase) to estimate price
 - POST `/swap/order` -> simulated order response; to enable real trades you must add authenticated calls and API keys (see Exchange integration)
