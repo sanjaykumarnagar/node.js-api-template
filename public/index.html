@@ -204,6 +204,103 @@
           </div>
           <pre id="bankOut" class="mt8"></pre>
         </div>
+      <div class="card" id="portfolioCard">
+          <h3>Unified Portfolio</h3>
+          <label>EVM addresses (comma-separated)</label>
+          <input id="pfEvmAddrs" placeholder="0xabc...,0xdef..." />
+          <label class="mt8">ERC20 token addresses (comma-separated)</label>
+          <input id="pfTokens" placeholder="0xToken1...,0xToken2..." />
+          <div class="row mt8">
+            <label><input type="checkbox" id="pfBtcRpc" /> BTC via RPC wallet</label>
+            <button onclick="loadPortfolio()">Aggregate</button>
+          </div>
+          <pre id="portfolioOut" class="mt8"></pre>
+        </div>
+
+        <div class="card" id="zrxCard">
+          <h3>0x Swap (Testnet-first)</h3>
+          <div class="row">
+            <input id="zrxChain" value="11155111" />
+            <input id="zrxSell" value="ETH" />
+            <input id="zrxBuy" value="USDC" />
+          </div>
+          <div class="row mt8">
+            <input id="zrxAmt" placeholder="sellAmount (wei)" />
+            <input id="zrxTaker" placeholder="takerAddress 0x..." />
+          </div>
+          <div class="row mt8">
+            <button onclick="zrxQuote()">Quote</button>
+            <button onclick="zrxBuild()">Build Tx</button>
+          </div>
+          <pre id="zrxOut" class="mt8"></pre>
+        </div>
+
+        <div class="card" id="tokensCard">
+          <h3>Tokens</h3>
+          <div class="row">
+            <input id="tkVs" value="usd" />
+            <input id="tkPerPage" value="25" />
+            <input id="tkPage" value="1" />
+            <button onclick="tokensList()">List</button>
+          </div>
+          <div class="row mt8">
+            <input id="tkIds" placeholder="bitcoin,ethereum" />
+            <input id="tkVs2" value="usd,eur" />
+            <button onclick="tokensRates()">Rates</button>
+          </div>
+          <pre id="tokensOut" class="mt8"></pre>
+        </div>
+
+        <div class="card" id="wiseCard">
+          <h3>Wise (Sandbox)</h3>
+          <div class="row">
+            <input id="wiseBase" placeholder="https://api.sandbox.transferwise.tech" />
+            <input id="wiseProfile" placeholder="Profile ID" />
+          </div>
+          <div class="row mt8">
+            <input id="wiseToken" placeholder="API Token" />
+            <button onclick="wiseSet()">Set Config</button>
+          </div>
+          <div class="row mt8">
+            <input id="wiseRecName" placeholder="Recipient Name" />
+            <input id="wiseIBAN" placeholder="IBAN or leave empty" />
+            <input id="wiseSwift" placeholder="SWIFT (optional)" />
+            <button onclick="wiseRecipient()">Create Recipient</button>
+          </div>
+          <div class="row mt8">
+            <input id="wiseSrc" value="USD" />
+            <input id="wiseDst" value="EUR" />
+            <input id="wiseAmt" value="100" />
+            <button onclick="wiseQuote()">Quote</button>
+          </div>
+          <div class="row mt8">
+            <input id="wiseAcct" placeholder="targetAccount id" />
+            <input id="wiseQuoteId" placeholder="quoteUuid" />
+            <button onclick="wiseTransfer()">Transfer</button>
+            <input id="wiseTransferId" placeholder="transferId" />
+            <button onclick="wiseFund()">Fund</button>
+          </div>
+          <pre id="wiseOut" class="mt8"></pre>
+        </div>
+
+        <div class="card" id="paymentsCard">
+          <h3>Payments (PayPal / Google Pay stubs)</h3>
+          <div class="row">
+            <button onclick="paymentsConfig()">Get Config</button>
+            <input id="payProvider" value="paypal" />
+            <button onclick="linkAccount()">Link</button>
+          </div>
+          <div class="row mt8">
+            <input id="payAmount" value="10" />
+            <input id="payCurrency" value="USD" />
+            <button onclick="createPayment()">Create Payment</button>
+          </div>
+          <div class="row mt8">
+            <input id="payId" placeholder="paymentId" />
+            <button onclick="getPayment()">Get Payment</button>
+          </div>
+          <pre id="paymentsOut" class="mt8"></pre>
+        </div>
       </div>
 
       <p class="mt12">Note: This toolkit is for testnet/regtest and educational purposes only.</p>
@@ -404,8 +501,132 @@
         document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
       }
 
+      // Portfolio
+      async function loadPortfolio() {
+        const addrs = (document.getElementById('pfEvmAddrs').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const tokens = (document.getElementById('pfTokens').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const useRpc = document.getElementById('pfBtcRpc').checked;
+        const res = await fetchJSON('/portfolio', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ btc:{useRpc}, evm:{ addresses:addrs, tokens } }) });
+        document.getElementById('portfolioOut').innerText = JSON.stringify(res, null, 2);
+      }
+
+      // 0x
+      async function zrxQuote() {
+        const chainId = Number(document.getElementById('zrxChain').value);
+        const sellToken = document.getElementById('zrxSell').value.trim();
+        const buyToken = document.getElementById('zrxBuy').value.trim();
+        const sellAmount = document.getElementById('zrxAmt').value.trim();
+        const takerAddress = document.getElementById('zrxTaker').value.trim();
+        const res = await fetchJSON(`/0x/quote?chainId=${chainId}&sellToken=${encodeURIComponent(sellToken)}&buyToken=${encodeURIComponent(buyToken)}&sellAmount=${encodeURIComponent(sellAmount)}&takerAddress=${encodeURIComponent(takerAddress)}`);
+        document.getElementById('zrxOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function zrxBuild() {
+        const chainId = Number(document.getElementById('zrxChain').value);
+        const sellToken = document.getElementById('zrxSell').value.trim();
+        const buyToken = document.getElementById('zrxBuy').value.trim();
+        const sellAmount = document.getElementById('zrxAmt').value.trim();
+        const takerAddress = document.getElementById('zrxTaker').value.trim();
+        const res = await fetchJSON('/0x/build', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chainId, sellToken, buyToken, sellAmount, takerAddress }) });
+        document.getElementById('zrxOut').innerText = JSON.stringify(res, null, 2);
+      }
+
+      // Tokens
+      async function tokensList() {
+        const vs = document.getElementById('tkVs').value.trim();
+        const per = Number(document.getElementById('tkPerPage').value);
+        const page = Number(document.getElementById('tkPage').value);
+        const res = await fetchJSON(`/tokens/list?vs_currency=${encodeURIComponent(vs)}&per_page=${per}&page=${page}`);
+        document.getElementById('tokensOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function tokensRates() {
+        const ids = document.getElementById('tkIds').value.trim();
+        const vs = document.getElementById('tkVs2').value.trim();
+        const res = await fetchJSON(`/tokens/rates?ids=${encodeURIComponent(ids)}&vs=${encodeURIComponent(vs)}`);
+        document.getElementById('tokensOut').innerText = JSON.stringify(res, null, 2);
+      }
+
+      // Wise
+      async function wiseSet() {
+        const apiBase = document.getElementById('wiseBase').value.trim();
+        const apiToken = document.getElementById('wiseToken').value.trim();
+        const profileId = document.getElementById('wiseProfile').value.trim();
+        const r = await fetchJSON('/wise/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ apiBase, apiToken, profileId }) });
+        document.getElementById('wiseOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function wiseRecipient() {
+        const name = document.getElementById('wiseRecName').value.trim();
+        const iban = document.getElementById('wiseIBAN').value.trim();
+        const swiftBic = document.getElementById('wiseSwift').value.trim();
+        const r = await fetchJSON('/wise/recipients', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, iban, currency: 'EUR', swiftBic }) });
+        document.getElementById('wiseOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function wiseQuote() {
+        const sourceCurrency = document.getElementById('wiseSrc').value.trim();
+        const targetCurrency = document.getElementById('wiseDst').value.trim();
+        const targetAmount = Number(document.getElementById('wiseAmt').value);
+        const r = await fetchJSON('/wise/quotes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sourceCurrency, targetCurrency, targetAmount }) });
+        document.getElementById('wiseQuoteId').value = r.id || r.quoteUuid || '';
+        document.getElementById('wiseOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function wiseTransfer() {
+        const targetAccount = document.getElementById('wiseAcct').value.trim();
+        const quoteUuid = document.getElementById('wiseQuoteId').value.trim();
+        const customerTransactionId = cryptoRandom();
+        const r = await fetchJSON('/wise/transfers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ targetAccount, quoteUuid, customerTransactionId }) });
+        document.getElementById('wiseTransferId').value = r.id || '';
+        document.getElementById('wiseOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function wiseFund() {
+        const transferId = document.getElementById('wiseTransferId').value.trim();
+        const r = await fetchJSON('/wise/fund', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ transferId }) });
+        document.getElementById('wiseOut').innerText = JSON.stringify(r, null, 2);
+      }
+
+      function cryptoRandom() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+          return v.toString(16);
+        });
+      }
+
+      // Payments
+      async function paymentsConfig() {
+        const r = await fetchJSON('/payments/config');
+        document.getElementById('paymentsOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function linkAccount() {
+        const provider = document.getElementById('payProvider').value.trim();
+        const r = await fetchJSON('/payments/link', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider }) });
+        document.getElementById('paymentsOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function createPayment() {
+        const provider = document.getElementById('payProvider').value.trim();
+        const amount = Number(document.getElementById('payAmount').value);
+        const currency = document.getElementById('payCurrency').value.trim();
+        const r = await fetchJSON('/payments/payment', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider, amount, currency }) });
+        document.getElementById('payId').value = r.paymentId || '';
+        document.getElementById('paymentsOut').innerText = JSON.stringify(r, null, 2);
+      }
+      async function getPayment() {
+        const id = document.getElementById('payId').value.trim();
+        const r = await fetchJSON('/payments/payment/' + encodeURIComponent(id));
+        document.getElementById('paymentsOut').innerText = JSON.stringify(r, null, 2);
+      }
+
+      // Feature flags - hide UI where not enabled
+      async function applyFlags() {
+        try {
+          const f = await fetchJSON('/flags');
+          if (!f.enableWise) document.getElementById('wiseCard').style.display = 'none';
+          if (!f.enableTokens) document.getElementById('tokensCard').style.display = 'none';
+          if (!f.enableEvm) document.getElementById('zrxCard').style.display = 'none';
+          if (!f.enableBanking) document.getElementById('bankingCard').style.display = 'none';
+        } catch {}
+      }
+
       // init
       refreshConfig();
+      applyFlags();
     </script>
   </body>
 </html>
