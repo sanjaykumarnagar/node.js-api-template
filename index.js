@@ -19,6 +19,7 @@ const paymentsRoutes = require('./src/routes/payments');
 const flagsRoutes = require('./src/routes/flags');
 const secretsRoutes = require('./src/routes/secrets');
 const auditRoutes = require('./src/routes/audit');
+const bundleRoutes = require('./src/routes/bundle');
 
 app.use(express.json());
 
@@ -89,6 +90,9 @@ app.use('/secrets', secretsRoutes);
 
 // Audit log
 app.use('/audit', auditRoutes);
+
+// Bundle download (zip)
+app.use('/', bundleRoutes);
 
 // Root -> UI index.html
 app.get('/', (req, res) => {
