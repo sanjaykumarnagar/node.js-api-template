@@ -169,6 +169,41 @@
           </div>
           <pre id="swapOut" class="mt8"></pre>
         </div>
+
+        <div class="card">
+          <h3>Banking (FX, SWIFT, Transfer)</h3>
+          <div class="row">
+            <input id="swiftCode" placeholder="SWIFT/BIC" />
+            <button onclick="swiftValidate()">Validate</button>
+          </div>
+          <div class="row mt8">
+            <input id="bankName" placeholder="Bank name" />
+            <input id="accountName" placeholder="Account name" />
+          </div>
+          <div class="row mt8">
+            <input id="accountNumber" placeholder="Account number / IBAN" />
+            <input id="bankCurrency" placeholder="Bank currency (e.g. USD)" />
+          </div>
+          <div class="row mt8">
+            <input id="baseCurrency" value="USD" />
+            <input id="targetCurrency" value="EUR" />
+            <input id="amountBase" placeholder="Amount" />
+            <button onclick="bankQuote()">Quote</button>
+          </div>
+          <div class="row mt8">
+            <button onclick="bankConfirmInit()">Init Confirm</button>
+            <input id="confirmId" placeholder="confirmationId" />
+            <input id="confirmCode" placeholder="code" />
+            <button onclick="bankConfirmVerify()">Verify</button>
+            <button onclick="bankTransfer()">Transfer</button>
+          </div>
+          <div class="row mt8">
+            <input id="btcAmount" placeholder="BTC amount" />
+            <input id="btcTarget" value="USD" />
+            <button onclick="btcConvert()">BTC Convert</button>
+          </div>
+          <pre id="bankOut" class="mt8"></pre>
+        </div>
       </div>
 
       <p class="mt12">Note: This toolkit is for testnet/regtest and educational purposes only.</p>
@@ -319,6 +354,54 @@
         const amount = Number(document.getElementById('swapAmt').value);
         const res = await fetchJSON('/swap/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider, from, to, amount }) });
         document.getElementById('swapOut').innerText = JSON.stringify(res, null, 2);
+      }
+
+      // Banking helpers
+      let lastQuote = null;
+
+      async function swiftValidate() {
+        const code = document.getElementById('swiftCode').value.trim();
+        const res = await fetchJSON('/banking/swift/validate?code=' + encodeURIComponent(code));
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function bankQuote() {
+        const bank = {
+          name: document.getElementById('bankName').value.trim(),
+          accountName: document.getElementById('accountName').value.trim(),
+          accountNumber: document.getElementById('accountNumber').value.trim(),
+          currency: document.getElementById('bankCurrency').value.trim(),
+          swift: document.getElementById('swiftCode').value.trim(),
+        };
+        const amount = Number(document.getElementById('amountBase').value);
+        const baseCurrency = document.getElementById('baseCurrency').value.trim();
+        const targetCurrency = document.getElementById('targetCurrency').value.trim();
+        const res = await fetchJSON('/banking/quote', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ amount, baseCurrency, targetCurrency, bank }) });
+        lastQuote = res;
+        document.getElementById('confirmId').value = res.quoteId || '';
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function bankConfirmInit() {
+        if (!lastQuote) { document.getElementById('bankOut').innerText = 'No quote'; return; }
+        const res = await fetchJSON('/banking/confirm/init', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ quote: lastQuote }) });
+        document.getElementById('confirmId').value = res.confirmationId || '';
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function bankConfirmVerify() {
+        const confirmationId = document.getElementById('confirmId').value.trim();
+        const code = document.getElementById('confirmCode').value.trim();
+        const res = await fetchJSON('/banking/confirm/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ confirmationId, code }) });
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function bankTransfer() {
+        const confirmationId = document.getElementById('confirmId').value.trim();
+        const res = await fetchJSON('/banking/transfer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ confirmationId }) });
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function btcConvert() {
+        const amountBTC = Number(document.getElementById('btcAmount').value);
+        const targetCurrency = document.getElementById('btcTarget').value.trim();
+        const res = await fetchJSON('/banking/convert-btc', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ amountBTC, targetCurrency }) });
+        document.getElementById('bankOut').innerText = JSON.stringify(res, null, 2);
       }
 
       // init

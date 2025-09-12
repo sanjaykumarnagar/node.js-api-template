@@ -82,9 +82,28 @@ Notes:
 - POST `/swap/quote` -> `{ provider, from, to, amount }` uses public market data (Kraken/Coinbase) to estimate price
 - POST `/swap/order` -> simulated order response; to enable real trades you must add authenticated calls and API keys (see Exchange integration)
 
-## Banking and FX scaffolding
+## Banking and FX
 - GET `/banking/fx?base=USD&symbols=USD,EUR,GBP,...` -> live FX rates (exchangerate.host)
-- POST `/banking/transfer` -> simulated response; integrate a provider like Wise/Stripe/Circle/Bank APIs for real transfers (requires compliance and underwriting)
+- GET `/banking/swift/validate?code=XXXXXX` -> basic SWIFT/BIC format validation
+- POST `/banking/quote`
+  - Body:
+    {
+      "amount": 1000,
+      "baseCurrency": "USD",
+      "targetCurrency": "EUR",
+      "bank": {
+        "name": "Example Bank",
+        "accountName": "John Doe",
+        "accountNumber": "DE89 3704 0044 0532 0130 00",
+        "currency": "EUR",
+        "swift": "DEUTDEFF"
+      }
+    }
+  - Returns: quote with fees breakdown, applied FX rate, amountTarget, totalDebit
+- POST `/banking/confirm/init` -> pass the quote object to receive a confirmationId (simulates OTP flow)
+- POST `/banking/confirm/verify` -> { confirmationId, code } to verify (simulated OTP)
+- POST `/banking/transfer` -> { confirmationId } to finalize (simulated payout; integrate a provider for real transfers)
+- POST `/banking/convert-btc` -> { amountBTC, targetCurrency } returns conversion using Coinbase public BTC rates
 
 ## Bitcoin Endpoints
 

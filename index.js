@@ -9,6 +9,7 @@ const rpcRoutes = require('./src/routes/rpc');
 const utilsRoutes = require('./src/routes/utils');
 const swapRoutes = require('./src/routes/swap');
 const exchangeRoutes = require('./src/routes/exchange');
+const bankingRoutes = require('./src/routes/banking');
 
 app.use(express.json());
 
@@ -49,6 +50,9 @@ app.use('/swap', swapRoutes);
 
 // Exchange routes (API key config + authenticated orders)
 app.use('/exchange', exchangeRoutes);
+
+// Banking routes (FX, SWIFT validation, quotes, confirmation, simulated transfers)
+app.use('/banking', bankingRoutes);
 
 // Root -> UI index.html
 app.get('/', (req, res) => {
