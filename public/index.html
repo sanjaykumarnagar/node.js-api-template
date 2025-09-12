@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Bitcoin Toolkit (Testnet/Regtest)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; padding: 0; background: #0f172a; color: #e2e8f0; }
+      header { padding: 16px 24px; background: #111827; border-bottom: 1px solid #1f2937; }
+      main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+      h1 { margin: 0 0 8px; font-size: 20px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+      .card { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 16px; }
+      label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 6px; }
+      input, textarea, select { width: 100%; background: #0b1220; color: #e5e7eb; border: 1px solid #243048; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+      textarea { min-height: 100px; }
+      button { background: #2563eb; color: white; border: none; border-radius: 8px; padding: 10px 12px; cursor: pointer; font-weight: 600; }
+      button:hover { background: #1d4ed8; }
+      .row { display: flex; gap: 8px; align-items: center; }
+      .mt8 { margin-top: 8px; }
+      .mt12 { margin-top: 12px; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background: #0b1220; color: #e5e7eb; padding: 10px; border-radius: 8px; border: 1px solid #243048; }
+      a { color: #93c5fd; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Bitcoin Toolkit API (Testnet/Regtest)</h1>
+      <div id="network"></div>
+    </header>
+    <main>
+      <div class="grid">
+        <div class="card">
+          <h3>Network Config</h3>
+          <div class="row mt8">
+            <select id="networkSelect">
+              <option value="testnet">testnet</option>
+              <option value="regtest">regtest</option>
+            </select>
+            <button onclick="updateNetwork()">Set</button>
+          </div>
+          <pre id="configOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>Fees</h3>
+          <button onclick="loadFees()">Load Fees</button>
+          <pre id="feesOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>Mnemonic</h3>
+          <div class="row">
+            <input id="strength" type="number" min="128" max="256" step="32" value="128" />
+            <button onclick="genMnemonic()">Generate</button>
+          </div>
+          <textarea id="mnemonic" class="mt8" placeholder="mnemonic..."></textarea>
+          <input id="passphrase" class="mt8" placeholder="passphrase (optional)" />
+          <button class="mt8" onclick="fromMnemonic()">From Mnemonic</button>
+          <pre id="rootOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>Derive Address</h3>
+          <input id="baseKey" placeholder="tprv... or tpub..." />
+          <input id="path" class="mt8" value="m/84'/1'/0'/0/0" />
+          <button class="mt8" onclick="derive()">Derive</button>
+          <pre id="deriveOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>UTXOs</h3>
+          <input id="addr" placeholder="tb1..." />
+          <button class="mt8" onclick="fetchUtxos()">Fetch</button>
+          <pre id="utxosOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>Coin Select</h3>
+          <label>UTXOs JSON</label>
+          <textarea id="utxosJson" placeholder='[{"txid":"...","vout":0,"value":10000}]'></textarea>
+          <label class="mt8">Targets JSON</label>
+          <textarea id="targetsJson" placeholder='[{"address":"tb1...","value":9000}]'></textarea>
+          <label class="mt8">Fee rate (sat/vB)</label>
+          <input id="feerate" type="number" value="2" />
+          <button class="mt8" onclick="coinSelect()">Select</button>
+          <pre id="csOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>PSBT Build/Sign/Broadcast</h3>
+          <label>Inputs JSON</label>
+          <textarea id="inputsJson" placeholder='[{"txid":"...","vout":0,"value":10000,"address":"tb1..."}]'></textarea>
+          <label class="mt8">Outputs JSON</label>
+          <textarea id="outputsJson" placeholder='[{"address":"tb1...","value":9000}]'></textarea>
+          <button class="mt8" onclick="buildPsbt()">Build</button>
+
+          <label class="mt12">PSBT (base64)</label>
+          <textarea id="psbt" placeholder="base64..."></textarea>
+          <label class="mt8">WIFs JSON</label>
+          <textarea id="wifsJson" placeholder='["cV..."]'></textarea>
+          <button class="mt8" onclick="signPsbt()">Sign</button>
+
+          <label class="mt12">Raw TX hex</label>
+          <textarea id="hex" placeholder="01000000..."></textarea>
+          <button class="mt8" onclick="broadcast()">Broadcast</button>
+
+          <pre id="txOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>RPC Config (optional)</h3>
+          <input id="rpcUrl" placeholder="http://127.0.0.1:18443/" />
+          <input id="rpcUser" class="mt8" placeholder="rpcuser" />
+          <input id="rpcPass" class="mt8" placeholder="rpcpassword" type="password" />
+          <div class="row mt8">
+            <button onclick="setRpc()">Set RPC</button>
+            <button onclick="rpcHealth()">Health</button>
+            <button onclick="clearRpc()">Clear</button>
+          </div>
+          <pre id="rpcOut" class="mt8"></pre>
+        </div>
+      </div>
+
+      <p class="mt12">Note: This toolkit is for testnet/regtest and educational purposes only.</p>
+    </main>
+
+    <script>
+      async function fetchJSON(url, opts) {
+        const r = await fetch(url, opts);
+        const t = await r.text();
+        try { return JSON.parse(t); } catch { return { raw: t }; }
+      }
+      async function refreshConfig() {
+        const cfg = await fetchJSON('/config');
+        document.getElementById('network').innerText = 'Network: ' + (cfg.network || 'testnet');
+        document.getElementById('configOut').innerText = JSON.stringify(cfg, null, 2);
+        document.getElementById('networkSelect').value = cfg.network || 'testnet';
+      }
+      async function updateNetwork() {
+        const network = document.getElementById('networkSelect').value;
+        const res = await fetchJSON('/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ network }) });
+        document.getElementById('configOut').innerText = JSON.stringify(res, null, 2);
+        refreshConfig();
+      }
+      async function loadFees() {
+        const res = await fetchJSON('/utils/fees');
+        document.getElementById('feesOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function genMnemonic() {
+        const strength = Number(document.getElementById('strength').value);
+        const res = await fetchJSON('/btc/wallets/mnemonic', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ strength }) });
+        document.getElementById('mnemonic').value = res.mnemonic || '';
+      }
+      async function fromMnemonic() {
+        const mnemonic = document.getElementById('mnemonic').value.trim();
+        const passphrase = document.getElementById('passphrase').value;
+        const res = await fetchJSON('/btc/wallets/from-mnemonic', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mnemonic, passphrase }) });
+        document.getElementById('rootOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function derive() {
+        const baseKey = document.getElementById('baseKey').value.trim();
+        const path = document.getElementById('path').value.trim();
+        const res = await fetchJSON('/btc/wallets/derive', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ baseKey, path, returnAddress: true }) });
+        document.getElementById('deriveOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function fetchUtxos() {
+        const address = document.getElementById('addr').value.trim();
+        const res = await fetchJSON('/btc/utxos/' + encodeURIComponent(address));
+        document.getElementById('utxosOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function coinSelect() {
+        try {
+          const utxos = JSON.parse(document.getElementById('utxosJson').value || '[]');
+          const targets = JSON.parse(document.getElementById('targetsJson').value || '[]');
+          const feeRate = Number(document.getElementById('feerate').value);
+          const res = await fetchJSON('/utils/coinselect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ utxos, targets, feeRate }) });
+          document.getElementById('csOut').innerText = JSON.stringify(res, null, 2);
+        } catch (e) {
+          document.getElementById('csOut').innerText = e.message;
+        }
+      }
+      async function buildPsbt() {
+        try {
+          const inputs = JSON.parse(document.getElementById('inputsJson').value || '[]');
+          const outputs = JSON.parse(document.getElementById('outputsJson').value || '[]');
+          const res = await fetchJSON('/btc/tx/psbt/build', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ inputs, outputs }) });
+          document.getElementById('psbt').value = res.psbt || '';
+        } catch (e) {
+          document.getElementById('txOut').innerText = e.message;
+        }
+      }
+      async function signPsbt() {
+        try {
+          const psbt = document.getElementById('psbt').value.trim();
+          const wifs = JSON.parse(document.getElementById('wifsJson').value || '[]');
+          const res = await fetchJSON('/btc/tx/psbt/sign', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ psbt, wifs }) });
+          document.getElementById('hex').value = res.hex || '';
+          document.getElementById('txOut').innerText = JSON.stringify(res, null, 2);
+        } catch (e) {
+          document.getElementById('txOut').innerText = e.message;
+        }
+      }
+      async function broadcast() {
+        const hex = document.getElementById('hex').value.trim();
+        const res = await fetchJSON('/btc/tx/broadcast', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ hex }) });
+        document.getElementById('txOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function setRpc() {
+        const url = document.getElementById('rpcUrl').value.trim();
+        const username = document.getElementById('rpcUser').value.trim();
+        const password = document.getElementById('rpcPass').value;
+        const res = await fetchJSON('/rpc/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url, username, password }) });
+        document.getElementById('rpcOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function rpcHealth() {
+        const res = await fetchJSON('/rpc/health');
+        document.getElementById('rpcOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function clearRpc() {
+        const res = await fetchJSON('/rpc/config', { method:'DELETE' });
+        document.getElementById('rpcOut').innerText = JSON.stringify(res, null, 2);
+      }
+      // init
+      refreshConfig();
+    </script>
+  </body>
+</html>

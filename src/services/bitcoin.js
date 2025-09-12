@@ -3,11 +3,14 @@ const bip39 = require('bip39');
 const bip32Factory = require('bip32');
 const tinysecp = require('tiny-secp256k1');
 const bitcoin = require('bitcoinjs-lib');
+const { ECPairFactory } = require('ecpair');
 const wif = require('wif');
 
 const config = require('../config');
+const rpc = require('./rpc');
 
 const bip32 = bip32Factory(tinysecp);
+const ECPair = ECPairFactory(tinysecp);
 
 // Map config network -> bitcoinjs and API host
 function getNetwork() {
@@ -21,9 +24,9 @@ function getNetwork() {
 function getApiBase() {
   const net = config.get().network;
   if (net === 'testnet') return 'https://blockstream.info/testnet/api';
-  // For regtest there's no public API; throw to encourage user to run their own node/indexer
+  // For regtest there's no public API; prefer RPC
   if (net === 'regtest') {
-    throw new Error('No public API for regtest. Run your own node/indexer and implement svc.broadcast/fetchUtxos.');
+    return null;
   }
   return 'https://blockstream.info/testnet/api';
 }
@@ -122,9 +125,23 @@ async function addressP2WPKH(xprvOrWif, path = "m/84'/1'/0'/0/0") {
   return { address, wif: wifOut };
 }
 
-// Fetch UTXOs for an address (testnet only, Blockstream API)
+// Fetch UTXOs for an address (testnet Blockstream API or RPC if configured)
 async function fetchUtxos(address) {
+  const net = config.get().network;
+  if (rpc.isConfigured()) {
+    const list = await rpc.listUnspentByAddress(address);
+    return (list || []).map(u => ({
+      txid: u.txid,
+      vout: u.vout,
+      value: Math.round(u.amount * 1e8),
+      confirmations: u.confirmations,
+      spendable: u.spendable,
+    }));
+  }
   const base = getApiBase();
+  if (!base) {
+    throw new Error('No public API for this network. Configure RPC via /rpc/config.');
+  }
   const { data } = await axios.get(`${base}/address/${address}/utxo`);
   // normalize to { txid, vout, value }
   return (data || []).map(u => ({
@@ -148,11 +165,6 @@ async function buildPsbt({ inputs, outputs }) {
     if (!inp.txid || inp.vout === undefined || inp.value === undefined || !inp.address) {
       throw new Error('Each input must include txid, vout, value, address');
     }
-    const payment = bitcoin.payments.p2wpkh({
-      // We cannot reconstruct pubkey from address; but for witnessUtxo we only need scriptPubKey
-      // toOutputScript supports segwit addresses.
-      // For P2SH-wrapped or legacy, this call still returns script.
-    }, network);
     const script = bitcoin.address.toOutputScript(inp.address, network);
 
     psbt.addInput({
@@ -188,7 +200,7 @@ async function signPsbt(psbtBase64, wifs = []) {
 
   // Try each WIF against each input; bitcoinjs will skip if key doesn't match
   for (const w of wifs) {
-    const keyPair = bitcoin.ECPair.fromWIF(w, network);
+    const keyPair = ECPair.fromWIF(w, network);
     psbt.signAllInputs(keyPair);
   }
 
@@ -201,10 +213,16 @@ async function signPsbt(psbtBase64, wifs = []) {
   return { signedPsbt: psbt.toBase64(), hex };
 }
 
-// Broadcast raw tx hex (testnet only via Blockstream)
+// Broadcast raw tx hex (Blockstream for testnet or RPC if configured)
 async function broadcast(hex) {
   if (!hex || typeof hex !== 'string') throw new Error('hex required');
+  if (rpc.isConfigured()) {
+    return rpc.broadcastRawTx(hex);
+  }
   const base = getApiBase();
+  if (!base) {
+    throw new Error('No public broadcast API for this network. Configure RPC via /rpc/config.');
+  }
   const { data } = await axios.post(`${base}/tx`, hex, {
     headers: { 'Content-Type': 'text/plain' },
   });

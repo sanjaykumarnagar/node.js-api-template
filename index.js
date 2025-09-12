@@ -1,11 +1,17 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const config = require('./src/config');
 const bitcoinRoutes = require('./src/routes/bitcoin');
+const rpcRoutes = require('./src/routes/rpc');
+const utilsRoutes = require('./src/routes/utils');
 
 app.use(express.json());
+
+// Serve static UI
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Basic health check
 app.get('/health', (req, res) => {
@@ -30,9 +36,15 @@ app.post('/config', (req, res) => {
 // Bitcoin routes
 app.use('/btc', bitcoinRoutes);
 
-// Root
+// RPC routes (optional)
+app.use('/rpc', rpcRoutes);
+
+// Utility routes (fees, coin selection)
+app.use('/utils', utilsRoutes);
+
+// Root -> UI index.html
 app.get('/', (req, res) => {
-  res.send('Bitcoin Toolkit API (testnet/regtest) is running. See /health and /btc endpoints.');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
