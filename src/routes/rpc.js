@@ -35,4 +35,69 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// Wallet management
+router.post('/wallets/create', async (req, res) => {
+  try {
+    const { name, disablePrivateKeys = false, blank = false } = req.body || {};
+    const r = await rpc.createWallet(name, disablePrivateKeys, blank);
+    res.json(r);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.get('/wallets', async (req, res) => {
+  try {
+    const r = await rpc.listWallets();
+    res.json({ wallets: r });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post('/wallets/load', async (req, res) => {
+  try {
+    const { name } = req.body || {};
+    const r = await rpc.loadWallet(name);
+    res.json(r);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Addresses and balance
+router.post('/addresses/new', async (req, res) => {
+  try {
+    const { label = '', type = 'bech32' } = req.body || {};
+    const addr = await rpc.getNewAddress(label, type);
+    res.json({ address: addr });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.get('/balance', async (req, res) => {
+  try {
+    const { minconf } = req.query;
+    const bal = await rpc.getBalance(minconf ? Number(minconf) : 0);
+    res.json({ balance: bal });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Send
+router.post('/send', async (req, res) => {
+  try {
+    const { address, amount, comment = '', comment_to = '', subtractFeeFromAmount = false } = req.body || {};
+    if (!address || !Number.isFinite(Number(amount))) {
+      return res.status(400).json({ error: 'address and numeric amount required' });
+    }
+    const txid = await rpc.sendToAddress(address, Number(amount), comment, comment_to, Boolean(subtractFeeFromAmount));
+    res.json({ txid });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 module.exports = router;

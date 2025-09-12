@@ -49,6 +49,7 @@ async function call(method, params = []) {
   return data.result;
 }
 
+// Common wrappers
 async function getBlockchainInfo() {
   return call('getblockchaininfo');
 }
@@ -58,12 +59,36 @@ async function broadcastRawTx(hex) {
 }
 
 async function listUnspentByAddress(address) {
-  // Filter by addresses (requires address indexing or importaddress/importdescriptors in your node)
+  // Filter by addresses (requires importaddress/importdescriptors)
   return call('listunspent', [0, 9999999, [address]]);
 }
 
 async function estimateSmartFee(blocks = 2) {
   return call('estimatesmartfee', [blocks]);
+}
+
+async function createWallet(name, disablePrivateKeys = false, blank = false) {
+  return call('createwallet', [name, disablePrivateKeys, blank]);
+}
+
+async function listWallets() {
+  return call('listwallets', []);
+}
+
+async function loadWallet(name) {
+  return call('loadwallet', [name]);
+}
+
+async function getNewAddress(label = '', type = 'bech32') {
+  return call('getnewaddress', [label, type]);
+}
+
+async function getBalance(minconf = 0) {
+  return call('getbalance', [ '*', minconf ]);
+}
+
+async function sendToAddress(address, amount, comment = '', comment_to = '', subtractFeeFromAmount = false) {
+  return call('sendtoaddress', [address, amount, comment, comment_to, subtractFeeFromAmount]);
 }
 
 module.exports = {
@@ -76,4 +101,10 @@ module.exports = {
   broadcastRawTx,
   listUnspentByAddress,
   estimateSmartFee,
+  createWallet,
+  listWallets,
+  loadWallet,
+  getNewAddress,
+  getBalance,
+  sendToAddress,
 };

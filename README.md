@@ -6,11 +6,12 @@ A modular Node.js API and minimal UI for educational Bitcoin development. It pro
 - Build, sign, and broadcast transactions using PSBT (bitcoinjs-lib)
 - Estimate fees and perform simple coin selection
 - Optional Bitcoin Core RPC integration (for regtest and advanced workflows)
+- Experimental swap scaffolding (quotes via public exchange APIs; simulated orders)
 
 Important:
 - This project is for educational and testing purposes only.
 - It does not and will not implement any "flashing" or deceptive transaction features.
-- Mainnet support is intentionally omitted; only testnet/regtest are supported.
+- Mainnet support is off by default; if you enable it with your own node/exchange accounts, you are responsible for compliance and safety.
 
 ## Run
 
@@ -27,6 +28,31 @@ Config:
 
 UI:
 - Browser UI is served from `/` and static files under `public/`. It exercises the API for quick testing.
+
+## Bitcoin Core integration (real node)
+
+This app integrates with the real Bitcoin Core (bitcoin/bitcoin) via RPC. To run a local regtest node quickly:
+
+- With Docker:
+  - Create a `.env` with:
+    RPC_USER=user
+    RPC_PASS=pass
+  - Start bitcoind (regtest): `docker-compose up -d`
+  - RPC will be exposed at `http://127.0.0.1:18443/` with the above credentials.
+  - In the UI (RPC Config) or via API POST `/rpc/config`, set url/user/pass.
+
+- From source (submodule optional):
+  - You can add the official repo as a submodule:
+    git submodule add https://github.com/bitcoin/bitcoin.git vendor/bitcoin
+    (Build and run bitcoind per their docs; then point this app to your node via `/rpc/config`.)
+
+Common RPC endpoints exposed here:
+- POST `/rpc/wallets/create` { name }
+- GET `/rpc/wallets`
+- POST `/rpc/wallets/load` { name }
+- POST `/rpc/addresses/new` { label?, type: "bech32"|"p2sh-segwit"|"legacy" }
+- GET `/rpc/balance`
+- POST `/rpc/send` { address, amount }
 
 ## Endpoints
 
@@ -81,7 +107,12 @@ RPC (optional, prefix: `/rpc`)
 - POST `/rpc/config` -> `{ url, username, password }` to set RPC credentials (password masked in responses)
 - GET `/rpc/config` -> return current RPC config (masked)
 - DELETE `/rpc/config` -> clear RPC config
-- GET `/rpc/health` -> `getblockchaininfo` from your node
+- GET `/rpc/health` -> `getblockchaininfo`
+- Wallet ops listed above
+
+Swap (experimental, prefix: `/swap`)
+- POST `/swap/quote` -> `{ provider, from, to, amount }` uses public market data (Kraken/Coinbase) to estimate price
+- POST `/swap/order` -> simulated order response; to enable real trades you must add authenticated calls and API keys (not provided here)
 
 Notes:
 - For regtest, configure your node via `/rpc/config` and import addresses/descriptors so listunspent returns your UTXOs.

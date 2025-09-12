@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  bitcoind:
+    image: ruimarinho/bitcoin-core:26.0
+    container_name: bitcoind-regtest
+    command:
+      - -regtest=1
+      - -server=1
+      - -printtoconsole=1
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -rpcuser=${RPC_USER:-user}
+      - -rpcpassword=${RPC_PASS:-pass}
+      - -txindex=1
+      - -fallbackfee=0.0002
+    ports:
+      - "18443:18443" # RPC
+      - "18444:18444" # P2P
+    volumes:
+      - ./data/bitcoin:/home/bitcoin/.bitcoin

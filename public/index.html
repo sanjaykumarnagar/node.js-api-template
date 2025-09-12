@@ -120,6 +120,55 @@
           </div>
           <pre id="rpcOut" class="mt8"></pre>
         </div>
+
+        <div class="card">
+          <h3>RPC Wallet Ops</h3>
+          <div class="row">
+            <input id="walletName" placeholder="wallet name" />
+            <button onclick="createWallet()">Create</button>
+          </div>
+          <div class="row mt8">
+            <button onclick="listWallets()">List</button>
+            <input id="loadName" placeholder="wallet name" />
+            <button onclick="loadWallet()">Load</button>
+          </div>
+          <div class="row mt8">
+            <input id="addrLabel" placeholder="label" />
+            <select id="addrType">
+              <option value="bech32">bech32</option>
+              <option value="p2sh-segwit">p2sh-segwit</option>
+              <option value="legacy">legacy</option>
+            </select>
+            <button onclick="newAddress()">New Address</button>
+          </div>
+          <div class="row mt8">
+            <button onclick="getBalance()">Balance</button>
+          </div>
+          <div class="row mt8">
+            <input id="sendTo" placeholder="to address" />
+            <input id="sendAmt" placeholder="amount (BTC)" />
+            <button onclick="send()">Send</button>
+          </div>
+          <pre id="rpcWalletOut" class="mt8"></pre>
+        </div>
+
+        <div class="card">
+          <h3>Swap (Quote/Order)</h3>
+          <div class="row">
+            <select id="provider">
+              <option value="kraken">kraken</option>
+              <option value="coinbase">coinbase</option>
+            </select>
+            <input id="fromCur" value="BTC" />
+            <input id="toCur" value="USDT" />
+          </div>
+          <div class="row mt8">
+            <input id="swapAmt" placeholder="amount" />
+            <button onclick="swapQuote()">Quote</button>
+            <button onclick="swapOrder()">Order</button>
+          </div>
+          <pre id="swapOut" class="mt8"></pre>
+        </div>
       </div>
 
       <p class="mt12">Note: This toolkit is for testnet/regtest and educational purposes only.</p>
@@ -221,6 +270,57 @@
         const res = await fetchJSON('/rpc/config', { method:'DELETE' });
         document.getElementById('rpcOut').innerText = JSON.stringify(res, null, 2);
       }
+
+      // RPC wallet ops
+      async function createWallet() {
+        const name = document.getElementById('walletName').value.trim();
+        const res = await fetchJSON('/rpc/wallets/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function listWallets() {
+        const res = await fetchJSON('/rpc/wallets');
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function loadWallet() {
+        const name = document.getElementById('loadName').value.trim();
+        const res = await fetchJSON('/rpc/wallets/load', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function newAddress() {
+        const label = document.getElementById('addrLabel').value.trim();
+        const type = document.getElementById('addrType').value;
+        const res = await fetchJSON('/rpc/addresses/new', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label, type }) });
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function getBalance() {
+        const res = await fetchJSON('/rpc/balance');
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function send() {
+        const address = document.getElementById('sendTo').value.trim();
+        const amount = Number(document.getElementById('sendAmt').value);
+        const res = await fetchJSON('/rpc/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ address, amount }) });
+        document.getElementById('rpcWalletOut').innerText = JSON.stringify(res, null, 2);
+      }
+
+      // Swap
+      async function swapQuote() {
+        const provider = document.getElementById('provider').value;
+        const from = document.getElementById('fromCur').value.trim();
+        const to = document.getElementById('toCur').value.trim();
+        const amount = Number(document.getElementById('swapAmt').value);
+        const res = await fetchJSON('/swap/quote', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider, from, to, amount }) });
+        document.getElementById('swapOut').innerText = JSON.stringify(res, null, 2);
+      }
+      async function swapOrder() {
+        const provider = document.getElementById('provider').value;
+        const from = document.getElementById('fromCur').value.trim();
+        const to = document.getElementById('toCur').value.trim();
+        const amount = Number(document.getElementById('swapAmt').value);
+        const res = await fetchJSON('/swap/order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider, from, to, amount }) });
+        document.getElementById('swapOut').innerText = JSON.stringify(res, null, 2);
+      }
+
       // init
       refreshConfig();
     </script>
