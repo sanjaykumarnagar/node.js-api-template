@@ -6,7 +6,9 @@ A modular Node.js API and minimal UI for educational Bitcoin development. It pro
 - Build, sign, and broadcast transactions using PSBT (bitcoinjs-lib)
 - Estimate fees and perform simple coin selection
 - Optional Bitcoin Core RPC integration (for regtest and advanced workflows)
+- Exchange integration: Coinbase Advanced Trade + Kraken (API key auth) for market orders
 - Experimental swap scaffolding (quotes via public exchange APIs; simulated orders)
+- FX rates and simulated bank transfers scaffolding
 
 Important:
 - This project is for educational and testing purposes only.
@@ -54,7 +56,37 @@ Common RPC endpoints exposed here:
 - GET `/rpc/balance`
 - POST `/rpc/send` { address, amount }
 
-## Endpoints
+## Exchange integration (authenticated)
+
+Config:
+- GET `/exchange/config` -> returns whether keys are set (masked)
+- POST `/exchange/config` body:
+  {
+    "kraken": { "apiKey": "...", "apiSecret": "..." },
+    "coinbase": { "apiKey": "...", "apiSecret": "...", "passphrase": "..." }
+  }
+- You can also set via environment variables:
+  - KRAKEN_API_KEY, KRAKEN_API_SECRET
+  - COINBASE_API_KEY, COINBASE_API_SECRET, COINBASE_API_PASSPHRASE
+
+Place a market order:
+- POST `/exchange/order/market`
+  - Kraken: `{ "provider": "kraken", "symbol": "XBTUSD", "side": "buy", "size": 0.001 }`
+  - Coinbase: `{ "provider": "coinbase", "symbol": "BTC-USD", "side": "BUY", "size": 0.001 }`
+
+Notes:
+- Symbols differ by exchange (Kraken: XBTUSD; Coinbase: BTC-USD).
+- Real trading requires KYC, correct account permissions, and careful key management. Keys are held in-memory only; use a secure secret manager in production.
+
+## Swap (public quotes, experimental)
+- POST `/swap/quote` -> `{ provider, from, to, amount }` uses public market data (Kraken/Coinbase) to estimate price
+- POST `/swap/order` -> simulated order response; to enable real trades you must add authenticated calls and API keys (see Exchange integration)
+
+## Banking and FX scaffolding
+- GET `/banking/fx?base=USD&symbols=USD,EUR,GBP,...` -> live FX rates (exchangerate.host)
+- POST `/banking/transfer` -> simulated response; integrate a provider like Wise/Stripe/Circle/Bank APIs for real transfers (requires compliance and underwriting)
+
+## Bitcoin Endpoints
 
 Bitcoin (prefix: `/btc`)
 - POST `/btc/wallets/mnemonic`
@@ -102,21 +134,6 @@ Utils (prefix: `/utils`)
 - POST `/utils/coinselect`
   - Body: `{ utxos: [{txid,vout,value}], targets: [{address,value}], feeRate: 2 }`
   - Returns: `{ inputs, fee, change }` simple greedy selection for P2WPKH.
-
-RPC (optional, prefix: `/rpc`)
-- POST `/rpc/config` -> `{ url, username, password }` to set RPC credentials (password masked in responses)
-- GET `/rpc/config` -> return current RPC config (masked)
-- DELETE `/rpc/config` -> clear RPC config
-- GET `/rpc/health` -> `getblockchaininfo`
-- Wallet ops listed above
-
-Swap (experimental, prefix: `/swap`)
-- POST `/swap/quote` -> `{ provider, from, to, amount }` uses public market data (Kraken/Coinbase) to estimate price
-- POST `/swap/order` -> simulated order response; to enable real trades you must add authenticated calls and API keys (not provided here)
-
-Notes:
-- For regtest, configure your node via `/rpc/config` and import addresses/descriptors so listunspent returns your UTXOs.
-- Inputs for PSBT building must include `value` and `address` so the correct witnessUtxo can be constructed.
 
 ## Development
 

@@ -8,6 +8,7 @@ const bitcoinRoutes = require('./src/routes/bitcoin');
 const rpcRoutes = require('./src/routes/rpc');
 const utilsRoutes = require('./src/routes/utils');
 const swapRoutes = require('./src/routes/swap');
+const exchangeRoutes = require('./src/routes/exchange');
 
 app.use(express.json());
 
@@ -45,6 +46,9 @@ app.use('/utils', utilsRoutes);
 
 // Swap routes (quotes/orders via public exchange APIs)
 app.use('/swap', swapRoutes);
+
+// Exchange routes (API key config + authenticated orders)
+app.use('/exchange', exchangeRoutes);
 
 // Root -> UI index.html
 app.get('/', (req, res) => {
