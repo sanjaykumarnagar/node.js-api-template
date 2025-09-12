@@ -35,6 +35,15 @@ async function getErc20Balance(address, tokenAddress) {
   return { tokenAddress, symbol: sym, balance: human, raw: bal.toString(), decimals: dec };
 }
 
+async function getBtcAddressBalanceBlockstreamTestnet(address) {
+  const base = 'https://blockstream.info/testnet/api';
+  const { data } = await axios.get(`${base}/address/${address}`);
+  const funded = (data.chain_stats?.funded_txo_sum || 0) + (data.mempool_stats?.funded_txo_sum || 0);
+  const spent = (data.chain_stats?.spent_txo_sum || 0) + (data.mempool_stats?.spent_txo_sum || 0);
+  const sats = funded - spent;
+  return sats; // sats
+}
+
 async function aggregate({ btc = {}, evm = {} } = {}) {
   const out = { btc: {}, evm: {} };
 
@@ -50,6 +59,22 @@ async function aggregate({ btc = {}, evm = {} } = {}) {
         out.btc.error = e.message;
       }
     }
+  }
+
+  // BTC per-address via explorer (testnet Blockstream)
+  if (btc && Array.isArray(btc.addresses) && btc.addresses.length) {
+    out.btc.addresses = {};
+    let totalSats = 0;
+    for (const a of btc.addresses) {
+      try {
+        const sats = await getBtcAddressBalanceBlockstreamTestnet(a);
+        out.btc.addresses[a] = { sats, btc: sats / 1e8 };
+        totalSats += sats;
+      } catch (e) {
+        out.btc.addresses[a] = { error: e.message };
+      }
+    }
+    out.btc.totalAddressBalance = { sats: totalSats, btc: totalSats / 1e8 };
   }
 
   // EVM ETH balances for addresses

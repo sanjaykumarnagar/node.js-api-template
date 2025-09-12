@@ -17,6 +17,8 @@ const swap0xRoutes = require('./src/routes/swap0x');
 const wiseRoutes = require('./src/routes/wise');
 const paymentsRoutes = require('./src/routes/payments');
 const flagsRoutes = require('./src/routes/flags');
+const secretsRoutes = require('./src/routes/secrets');
+const auditRoutes = require('./src/routes/audit');
 
 app.use(express.json());
 
@@ -81,6 +83,12 @@ app.use('/payments', paymentsRoutes);
 
 // Feature flags
 app.use('/flags', flagsRoutes);
+
+// Secrets manager API
+app.use('/secrets', secretsRoutes);
+
+// Audit log
+app.use('/audit', auditRoutes);
 
 // Root -> UI index.html
 app.get('/', (req, res) => {
