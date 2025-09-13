@@ -2,7 +2,6 @@ const axios = require('axios');
 const bip39 = require('bip39');
 // Support multiple export shapes of bip32 (v1, v2, CJS/ESM interop)
 const bip32lib = require('bip32');
-const BIP32F = (bip32lib && (bip32lib.BIP32Factory || bip32lib.default)) || bip32lib;
 const tinysecp = require('tiny-secp256k1');
 const bitcoin = require('bitcoinjs-lib');
 const { ECPairFactory } = require('ecpair');
@@ -11,7 +10,19 @@ const wif = require('wif');
 const config = require('../config');
 const rpc = require('./rpc');
 
-const bip32 = BIP32F(tinysecp);
+// Resolve bip32 instance across versions/export shapes.
+let bip32;
+if (bip32lib && typeof bip32lib.BIP32Factory === 'function') {
+  bip32 = bip32lib.BIP32Factory(tinysecp);
+} else if (bip32lib && typeof bip32lib.default === 'function') {
+  bip32 = bip32lib.default(tinysecp);
+} else if (bip32lib && typeof bip32lib.fromSeed === 'function') {
+  // v1-style export already bound
+  bip32 = bip32lib;
+} else {
+  throw new Error('Unsupported bip32 export shape');
+}
+
 const ECPair = ECPairFactory(tinysecp);
 
 // Map config network -> bitcoinjs and API host
