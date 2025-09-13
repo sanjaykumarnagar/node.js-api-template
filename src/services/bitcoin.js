@@ -1,6 +1,6 @@
 const axios = require('axios');
 const bip39 = require('bip39');
-const bip32Factory = require('bip32');
+const BIP32Factory = require('bip32').default;
 const tinysecp = require('tiny-secp256k1');
 const bitcoin = require('bitcoinjs-lib');
 const { ECPairFactory } = require('ecpair');
@@ -9,7 +9,7 @@ const wif = require('wif');
 const config = require('../config');
 const rpc = require('./rpc');
 
-const bip32 = bip32Factory(tinysecp);
+const bip32 = BIP32Factory(tinysecp);
 const ECPair = ECPairFactory(tinysecp);
 
 // Map config network -> bitcoinjs and API host
