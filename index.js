@@ -20,6 +20,7 @@ const flagsRoutes = require('./src/routes/flags');
 const secretsRoutes = require('./src/routes/secrets');
 const auditRoutes = require('./src/routes/audit');
 const bundleRoutes = require('./src/routes/bundle');
+const dbRoutes = require('./src/routes/db');
 
 app.use(express.json());
 
@@ -90,6 +91,9 @@ app.use('/secrets', secretsRoutes);
 
 // Audit log
 app.use('/audit', auditRoutes);
+
+// Database routes (PostgreSQL + Excel export)
+app.use('/db', dbRoutes);
 
 // Bundle download (zip)
 app.use('/', bundleRoutes);
